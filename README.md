@@ -1,11 +1,11 @@
 # NC-Weather-API  
-About:  
+**About:  **
   
 This project sends calls to a free weather API https://open-meteo.com/ to get the current temperature (F) of all NC cities.  The API call requires a latitude & longitude of each city which I get by using BeautifulSoup webscraper to scrape into a list from https://www.mapsofworld.com/usa/states/north-carolina/lat-long.html  
   
 I then take the city name & current temperature and send it to a database in MySQL.  
 
-Instructions:  
+**Instructions:  **
   
 Install MySQL: https://dev.mysql.com/downloads/installer/
 Run main.py in a python IDE such as PyCharm.  
@@ -23,4 +23,4 @@ To find out your MySQL 'host' and 'user' type this in the MySQL workbench and ex
 SELECT user();  
 It will return the 'host' and 'user' in this format:  
 user@host  
-
+For example: root@local host where 'root' is the user and 'localhost' is the host
