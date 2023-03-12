@@ -18,3 +18,9 @@ SHOW databases;
 USE nc_weather;  
 SHOW TABLES;  
 SELECT * FROM weather;  
+  
+To find out your MySQL 'host' and 'user' type this in the MySQL workbench and execute:  
+SELECT user();  
+It will return the 'host' and 'username' in this format:  
+user@host  
+For example: root@local host where 'root' is the 'user' and 'localhost' is the 'host'  
