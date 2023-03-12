@@ -1,4 +1,4 @@
-# Weather-API  
+# NC-Weather-API  
 About:  
   
 This project sends calls to a free weather API https://open-meteo.com/ to get the current temperature (F) of all NC cities.  The API call requires a latitude & longitude of each city which I get by using BeautifulSoup webscraper to scrape into a list from https://www.mapsofworld.com/usa/states/north-carolina/lat-long.html  
