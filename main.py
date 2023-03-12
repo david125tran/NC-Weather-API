@@ -1,4 +1,4 @@
-# ----------------------------------- INSTALL REQUIREMENTS -----------------------------------
+# ----------------------------------- TERMINAL INSTALL REQUIREMENTS -----------------------------------
 # pip install mysql-connector-python
 
 # ----------------------------------- IMPORTS -----------------------------------
@@ -6,12 +6,13 @@ import requests
 from bs4 import BeautifulSoup
 import time
 
-# ----------------------------------- LATITUDE AND LONGITUDE OF NC CITIES -----------------------------------
+# ----------------------------------- GET LATITUDE AND LONGITUDE OF ALL NC CITIES -----------------------------------
 URL = "https://www.mapsofworld.com/usa/states/north-carolina/lat-long.html" # This site has a list of latitude and longitude of NC cities
 response = requests.get(URL)
 website_html = response.text
 soup = BeautifulSoup(website_html, "html.parser")
-table = soup.find('div', class_="table-scroll")
+table = soup.find('div', class_="table-scroll") # Webscrape the table from the website
+
 # Iterate through each row and get either header or row values to webscrape the table:
 header = []
 rows = []
@@ -33,17 +34,14 @@ for row in rows: # Append the broken up table into an organized dictionary
     nc_cities["latitude"].append(row[1])
     nc_cities["longitude"].append(row[2])
 
-# ----------------------------------- SEND API REQUEST TO FREE WEATHER API -----------------------------------
+# ----------------------------------- SEND API REQUEST TO OPEN-METEO WEATHER API TO GET CITY TEMPERATURE -----------------------------------
 endpoint = "https://api.open-meteo.com/v1/forecast"
 
-nc_cities_weather = {
-    "location": [],
-    "temperature": []
-}
+nc_cities_temp = [] # Create a new list to have the (city name, city temperature)
 
 print("Hang tight, the API call will take ~10 mins to receive the temperature of the 739 NC cities")
 
-for i in range(0, 5): #len(nc_cities["location"])   # REPLACE THIS WITH 5 LATERda
+for i in range(0, len(nc_cities["location"])): # Iterate through each city's latitude & longitude to get the city's current temperature in farenheight
     params = {
         "latitude": nc_cities["latitude"][i],
         "longitude": nc_cities["longitude"][i],
@@ -56,15 +54,40 @@ for i in range(0, 5): #len(nc_cities["location"])   # REPLACE THIS WITH 5 LATERd
     weather_data = response.json() # Receive the data from the API call
 
     city_temperature = weather_data["current_weather"]["temperature"] # Get the temperature for the specific city
-    nc_cities_weather["location"].append(nc_cities["location"][i]) # Append the city name and current temperature to a new list
-    nc_cities_weather["temperature"].append(city_temperature)
+    nc_cities_temp.append((nc_cities["location"][i], city_temperature)) # Append the (city name, city temperature) to nc_cities_temp
 
-print(nc_cities_weather)
-
+# ----------------------------------- CONNECT TO MySQL TO STORE THE DATA IN A DATABASE -----------------------------------
 import mysql.connector
-mydb = mysql.connector.connect(
-  host="localhost",
-  user="yourusername",
-  password="yourpassword",
-  database="mydatabase"
+
+# To find out your MySQL 'host' and 'user' type this in the MySQL workbench:
+# SELECT user();
+# It will return the 'host' and 'username' in this format:
+# 'user'@'host'
+# For example: root@local host where 'root' is the 'user' and 'localhost' is the 'host'
+
+db = mysql.connector.connect(
+  host="Your Hostname", # Replace this with your hostname 
+  user="Your Username", # Replace this with your username
+  password="Your Password" # Replace this with your password
 )
+
+# The following is my credentials:
+# db = mysql.connector.connect(
+#   host="localhost",
+#   user="root",
+#   password="******************"
+# )
+
+cursor = db.cursor()
+cursor.execute("DROP DATABASE IF EXISTS nc_weather") # If the database already exists, delete it and create a new database
+cursor.execute("CREATE DATABASE nc_weather")
+cursor.execute("USE nc_weather")
+cursor.execute("CREATE TABLE weather (location VARCHAR(255), temperature VARCHAR(5))")
+
+query = "INSERT INTO weather (location, temperature) VALUES (%s, %s)"
+cursor.executemany(query, nc_cities_temp)
+db.commit()
+
+# The data has now been sent to a database in MySQL.
+# The database's name is 'nc_weather'
+# The table name is 'weather'
