@@ -34,12 +34,29 @@ for row in rows: # Append the broken up table into an organized dictionary
     nc_cities["latitude"].append(row[1])
     nc_cities["longitude"].append(row[2])
 
+# Remove the extra information at the end of the city name (For example, 'Aberdeen town' turns into 'Aberdeen')
+for i in range(0, len(nc_cities["location"])):
+    city = nc_cities["location"][i]
+    if " city" in city:
+        city = city.split(" city")[0]
+    elif " City" in city:
+        city = city.split(" City")[0]
+    elif " town" in city:
+        city = city.split(" town")[0]
+    elif " village" in city:
+        city = city.split(" village")[0]
+    elif " Village" in city:
+        city = city.split(" Village")[0]
+    else:
+        pass
+    nc_cities["location"][i] = city
+
 # ----------------------------------- SEND API REQUEST TO OPEN-METEO WEATHER API TO GET CITY TEMPERATURE -----------------------------------
 endpoint = "https://api.open-meteo.com/v1/forecast"
 
 nc_cities_temp = [] # Create a new list to have the (city name, city temperature)
 
-print("Hang tight, the API call will take ~10 mins to receive the temperature of the 739 NC cities")
+print("Hang tight, the API call will take ~10 mins to receive the temperatures of the 739 NC cities")
 
 for i in range(0, len(nc_cities["location"])): # Iterate through each city's latitude & longitude to get the city's current temperature in farenheight
     params = {
@@ -49,12 +66,12 @@ for i in range(0, len(nc_cities["location"])): # Iterate through each city's lat
         "temperature_unit": "fahrenheit"
     }
 
-    response = requests.get(url=endpoint, params=params)
+    response = requests.get(url=endpoint, params=params) # Do a get request to fetch the temperature data
     response.raise_for_status()
     weather_data = response.json() # Receive the data from the API call
 
     city_temperature = weather_data["current_weather"]["temperature"] # Get the temperature for the specific city
-    nc_cities_temp.append((nc_cities["location"][i], city_temperature)) # Append the (city name, city temperature) to nc_cities_temp
+    nc_cities_temp.append((nc_cities['location'][i], city_temperature)) # Append the (city, city temperature) to nc_cities_temp
 
 # ----------------------------------- CONNECT TO MySQL TO STORE THE DATA IN A DATABASE -----------------------------------
 import mysql.connector
@@ -66,7 +83,7 @@ import mysql.connector
 # For example: root@local host where 'root' is the 'user' and 'localhost' is the 'host'
 
 db = mysql.connector.connect(
-  host="Your Hostname", # Replace this with your hostname 
+  host="Your Hostname", # Replace this with your hostname
   user="Your Username", # Replace this with your username
   password="Your Password" # Replace this with your password
 )
@@ -75,7 +92,7 @@ db = mysql.connector.connect(
 # db = mysql.connector.connect(
 #   host="localhost",
 #   user="root",
-#   password="******************"
+#   password="******"
 # )
 
 cursor = db.cursor()
@@ -88,6 +105,5 @@ query = "INSERT INTO weather (location, temperature) VALUES (%s, %s)"
 cursor.executemany(query, nc_cities_temp)
 db.commit()
 
-# The data has now been sent to a database in MySQL.
-# The database's name is 'nc_weather'
-# The table name is 'weather'
+print("The data has now been sent to the database: 'nc_weather', table name: 'weather' in MySQL")
+
