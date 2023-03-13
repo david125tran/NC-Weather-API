@@ -6,12 +6,12 @@ import requests
 from bs4 import BeautifulSoup
 import time
 
-# ----------------------------------- GET LATITUDE AND LONGITUDE OF ALL NC CITIES -----------------------------------
-URL = "https://www.mapsofworld.com/usa/states/north-carolina/lat-long.html" # This site has a list of latitude and longitude of NC cities
+# ----------------------------------- GET LATITUDE AND LONGITUDE OF ALL US STATES -----------------------------------
+URL = "https://www.latlong.net/category/states-236-14.html" # This site has a list of latitude and longitude of all 50 US States
 response = requests.get(URL)
 website_html = response.text
 soup = BeautifulSoup(website_html, "html.parser")
-table = soup.find('div', class_="table-scroll") # Webscrape the table from the website
+table = soup.find("table") # Webscrape the table from the website
 
 # Iterate through each row and get either header or row values to webscrape the table:
 header = []
@@ -21,47 +21,45 @@ for i, row in enumerate(table.find_all('tr')):
         header = [el.text.strip() for el in row.find_all('th')]
     else:
         rows.append([el.text.strip() for el in row.find_all('td')])
-rows.pop(0)  # Remove the 1st empty list entry
 
-nc_cities = {
+states = {
     "location": [],
     "latitude": [],
     "longitude": []
 }
 
 for row in rows: # Append the broken up table into an organized dictionary
-    nc_cities["location"].append(row[0])
-    nc_cities["latitude"].append(row[1])
-    nc_cities["longitude"].append(row[2])
+    states["location"].append(row[0])
+    states["latitude"].append(row[1])
+    states["longitude"].append(row[2])
 
-# Remove the extra information at the end of the city name (For example, 'Aberdeen town' turns into 'Aberdeen')
-for i in range(0, len(nc_cities["location"])):
-    city = nc_cities["location"][i]
-    if " city" in city:
-        city = city.split(" city")[0]
-    elif " City" in city:
-        city = city.split(" City")[0]
-    elif " town" in city:
-        city = city.split(" town")[0]
-    elif " village" in city:
-        city = city.split(" village")[0]
-    elif " Village" in city:
-        city = city.split(" Village")[0]
+# Remove the extra information at the end of the state names
+for i in range(0, len(states["location"])):
+
+    state = states["location"][i]
+    if ", USA" in state:
+        state = state.split(", USA")[0]
+    elif ", the USA" in state:
+        state = state.split(", the USA")[0]
+    elif ", USA" in state:
+        state = state.split(", USA")[0]
+    elif ", the US" in state:
+        state = state.split(", the US")[0]
     else:
         pass
-    nc_cities["location"][i] = city
+    states["location"][i] = state
 
-# ----------------------------------- SEND API REQUEST TO OPEN-METEO WEATHER API TO GET CITY TEMPERATURE -----------------------------------
+# ----------------------------------- SEND API REQUEST TO OPEN-METEO WEATHER API TO GET EACH STATE'S TEMPERATURE -----------------------------------
 endpoint = "https://api.open-meteo.com/v1/forecast"
 
-nc_cities_temp = [] # Create a new list to have the (city name, city temperature)
+usa_states_temp = [] # Create a new list to have the (state name, state temperature)
 
-print("Hang tight, the API call will take ~10 mins to receive the temperatures of the 739 NC cities")
+print("Hang tight, the API call will take ~1 min to receive all of the state's temperature data")
 
-for i in range(0, len(nc_cities["location"])): # Iterate through each city's latitude & longitude to get the city's current temperature in farenheight
+for i in range(0, len(states["location"])): # Iterate through each state's latitude & longitude to get the state's current temperature in farenheight
     params = {
-        "latitude": nc_cities["latitude"][i],
-        "longitude": nc_cities["longitude"][i],
+        "latitude": states["latitude"][i],
+        "longitude": states["longitude"][i],
         "current_weather": True,
         "temperature_unit": "fahrenheit"
     }
@@ -70,8 +68,8 @@ for i in range(0, len(nc_cities["location"])): # Iterate through each city's lat
     response.raise_for_status()
     weather_data = response.json() # Receive the data from the API call
 
-    city_temperature = weather_data["current_weather"]["temperature"] # Get the temperature for the specific city
-    nc_cities_temp.append((nc_cities['location'][i], city_temperature)) # Append the (city, city temperature) to nc_cities_temp
+    state_temperature = weather_data["current_weather"]["temperature"] # Get the temperature for the specific state
+    usa_states_temp.append((states['location'][i], state_temperature)) # Append the (state, state temperature)
 
 # ----------------------------------- CONNECT TO MySQL TO STORE THE DATA IN A DATABASE -----------------------------------
 import mysql.connector
@@ -92,18 +90,18 @@ db = mysql.connector.connect(
 # db = mysql.connector.connect(
 #   host="localhost",
 #   user="root",
-#   password="******"
+#   password="***"
 # )
 
 cursor = db.cursor()
-cursor.execute("DROP DATABASE IF EXISTS nc_weather") # If the database already exists, delete it and create a new database
-cursor.execute("CREATE DATABASE nc_weather")
-cursor.execute("USE nc_weather")
-cursor.execute("CREATE TABLE weather (location VARCHAR(255), temperature VARCHAR(5))")
+cursor.execute("DROP DATABASE IF EXISTS usa_weather") # If the database already exists, delete it and create a new database
+cursor.execute("CREATE DATABASE usa_weather")
+cursor.execute("USE usa_weather")
+cursor.execute("CREATE TABLE usa_temperature (location VARCHAR(255), temperature VARCHAR(5))")
 
-query = "INSERT INTO weather (location, temperature) VALUES (%s, %s)"
-cursor.executemany(query, nc_cities_temp)
+query = "INSERT INTO usa_temperature (location, temperature) VALUES (%s, %s)"
+cursor.executemany(query, usa_states_temp)
 db.commit()
 
-print("The data has now been sent to the database: 'nc_weather', table name: 'weather' in MySQL")
+print("The data has now been sent to the database: 'usa_weather', table name: 'usa_temperature' in MySQL")
 
