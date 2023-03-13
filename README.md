@@ -1,9 +1,9 @@
-# NC-Weather-API  
+# US-Weather-API  
 ******************************About******************************
   
-This project sends calls to a free weather API https://open-meteo.com/ to get the current temperature (F) of all NC cities.  The API call requires a latitude & longitude of each city which I get by using BeautifulSoup webscraper to scrape into a list from https://www.mapsofworld.com/usa/states/north-carolina/lat-long.html  
-  
-I then take the city name & current temperature and send it to a database in MySQL.  
+This project sends calls to a free weather API https://open-meteo.com/ to get the current temperature (F) of all 50 US states.  The API call requires a latitude & longitude of each state which I get by using BeautifulSoup webscraper to scrape into a list from https://www.latlong.net/category/states-236-14.html  
+
+I then take the state name & current temperature and send it to a database in MySQL.  
 
 ******************************Instructions******************************
   
@@ -15,9 +15,9 @@ The API call will take about 10 minutes to finish getting all NC cities current 
 To see the database, open MySQL Workbench.  In the workbench, type the following and hit execute:
 
 SHOW databases;  
-USE nc_weather;  
+USE usa_weather;  
 SHOW TABLES;  
-SELECT * FROM weather;  
+SELECT * FROM usa_temperature;  
   
 To find out your MySQL 'host' and 'user' type this in the MySQL workbench and execute:  
 SELECT user();  
